@@ -8,25 +8,24 @@
 #endif
 
 CHighResTimingScope __highResTimingScope;
-int64_t __highResCounterFreq=0;
+int64_t __highResCounterFreq = 0;
 
-CHighResTimingScope::CHighResTimingScope(){
+CHighResTimingScope::CHighResTimingScope() {
 #ifdef _WIN32
-  timeBeginPeriod(1); // inits hi-res sleep
-  QueryPerformanceFrequency((LARGE_INTEGER*)&__highResCounterFreq);
+    timeBeginPeriod(1); // inits hi-res sleep
+    QueryPerformanceFrequency((LARGE_INTEGER*)&__highResCounterFreq);
 #else
-  __highResCounterFreq = 1e6;
+    __highResCounterFreq = 1e6;
 #endif
-  if(__highResCounterFreq==0){
-    printf("ERROR: no performance counter found\n");
-    __highResCounterFreq = 1;
-  }
+    if (__highResCounterFreq == 0) {
+        printf("ERROR: no performance counter found\n");
+        __highResCounterFreq = 1;
+    }
 };
 
-CHighResTimingScope::~CHighResTimingScope()
-{
+CHighResTimingScope::~CHighResTimingScope() {
 #ifdef _WIN32
-  timeEndPeriod(1); // de-inits hi-res sleep
+    timeEndPeriod(1); // de-inits hi-res sleep
 #endif
 };
 

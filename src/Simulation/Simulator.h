@@ -6,17 +6,16 @@ using namespace std;
 
 class BaseDynamics;
 
-class Simulator
-{
+class Simulator {
 public:
-	Simulator();
+    Simulator();
 
-	void Reset();
+    void Reset();
 
-	void Run(float dt);
+    void Run(float dt);
 
-	void AddVehicle(shared_ptr<BaseDynamics> vehicle);
+    void AddVehicle(shared_ptr<BaseDynamics> vehicle);
 
-	vector<shared_ptr<BaseDynamics> > _vehicles;
-	float _simTime;
+    vector<shared_ptr<BaseDynamics> > _vehicles;
+    float _simTime;
 };

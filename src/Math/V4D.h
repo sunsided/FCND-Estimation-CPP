@@ -8,8 +8,7 @@ struct V4D
 {
   V4D() { v[0] = v[1] = v[2] = v[3] = 0; }
 
-  V4D(double a, double b, double c, double d)
-  {
+  V4D(double a, double b, double c, double d) {
     v[0] = a;
     v[1] = b;
     v[2] = c;

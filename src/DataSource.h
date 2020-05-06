@@ -2,21 +2,19 @@
 
 #include <string>
 #include <vector>
+
 using std::string;
 using std::vector;
 
-class DataSource
-{
+class DataSource {
 public:
-  virtual bool GetData(const string& name, float& ret) const
-  {
-    return false;
-  }
+    virtual bool GetData(const string &name, float &ret) const {
+        return false;
+    }
 
-  virtual vector<string> GetFields() const
-  {
-    return vector<string>();
-  }
+    virtual vector<string> GetFields() const {
+        return vector<string>();
+    }
 
-  virtual void FinalizeDataFrame() {}
+    virtual void FinalizeDataFrame() {}
 };

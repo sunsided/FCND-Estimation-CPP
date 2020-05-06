@@ -8,36 +8,40 @@
 using namespace std;
 using namespace fastdelegate;
 
-class GLUTMenu
-{
+class GLUTMenu {
 public:
-  GLUTMenu();
-  ~GLUTMenu();
+    GLUTMenu();
 
-  void CreateMenu(const vector<string>& strings);
-  void OnGLUTMenu(int id);
+    ~GLUTMenu();
 
-  FastDelegate1<string> OnMenu;
-  int _menuID;
-  int _menuItemCounter;
+    void CreateMenu(const vector<string> &strings);
 
-  std::map<int, string> _menuMap;
+    void OnGLUTMenu(int id);
 
-  bool IsActive();
+    FastDelegate1<string> OnMenu;
+    int _menuID;
+    int _menuItemCounter;
+
+    std::map<int, string> _menuMap;
+
+    bool IsActive();
 
 protected:
-  struct MenuEntry
-  {
-    MenuEntry() : glutMenuHandle(-1) {}
-    int glutMenuHandle; // if negative, not a menu itself.
-    int glutMenuEntryID;
-    map<string, MenuEntry> children;
-  };
+    struct MenuEntry {
+        MenuEntry() : glutMenuHandle(-1) {}
 
-  GLUTMenu::MenuEntry StringListToMenuTree(const vector<string>& strings);
-  void AddMenuEntry(const string& entry, const string& fullCommand, GLUTMenu::MenuEntry& top);
-  void CreateGLUTMenus(MenuEntry& top);
-  void RemoveGLUTMenus(MenuEntry& top);
+        int glutMenuHandle; // if negative, not a menu itself.
+        int glutMenuEntryID;
+        map<string, MenuEntry> children;
+    };
 
-  MenuEntry menuTree;
+    GLUTMenu::MenuEntry StringListToMenuTree(const vector<string> &strings);
+
+    void AddMenuEntry(const string &entry, const string &fullCommand, GLUTMenu::MenuEntry &top);
+
+    void CreateGLUTMenus(MenuEntry &top);
+
+    void RemoveGLUTMenus(MenuEntry &top);
+
+    MenuEntry menuTree;
 };
