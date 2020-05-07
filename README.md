@@ -341,7 +341,9 @@ Note that the actual standard deviations for the GPS are known from
 position standard deviations are so close to the velocity ones, even though they're undergoing
 a pass of integrating noise - however, the results seem pretty good, so I'm not going to argue.
 
-### Step 6: Adding Your Controller
+![](images/gps-integrated.png)
+
+### Patching in the Controller
 
 Up to this point, we have been working with a controller that has been relaxed to work with an estimated
 state instead of a real state.  So now, you will see how well your controller performs and de-tune your
