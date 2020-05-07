@@ -284,10 +284,28 @@ The following value was obtained this way:
 
 The result looked somewhat like this (just better):
 
-![mag good](images/mag-good-solution.png)
+![mag good, Hulk strong](images/mag-good-solution.png)
 
 
-### Step 5: Closed Loop + GPS Update
+### Closed Loop and GPS Update
+
+So far, only ideal estimators and IMUs were used. Using scenario `11_GPSUpdate`, disabling the
+ideal estimator by setting `Quad.UseIdealEstimator` to `0` in
+[`config/11_GPSUpdate.txt`](config/11_GPSUpdate.txt) gives the following beauty of a path:
+
+![You tried](images/you-tried.png)
+
+Going one step further and allowing for a nonzero noise in the IMU by commenting out the
+zero-valued standard deviations like so ...
+
+```
+#SimIMU.AccelStd = 0,0,0
+#SimIMU.GyroStd = 0,0,0
+```
+
+... sends the drone off to explore outer space 👋:
+
+![This is my life now](images/this-is-my-life-now.png)
 
 1. Run scenario `11_GPSUpdate`.  At the moment this scenario is using both an ideal estimator and and
    ideal IMU.  Even with these ideal elements, watch the position and velocity errors (bottom right).
