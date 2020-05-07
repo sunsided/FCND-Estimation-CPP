@@ -130,10 +130,10 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro) {
     accelPitch = atan2f(-accel.x, 9.81f);
 
     // FUSE INTEGRATION AND UPDATE
-    const auto gyroCoeff  = attitudeTau / (attitudeTau + dtIMU);
-    const auto accelCoeff = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
-    rollEst  = wrapAngle(gyroCoeff * predictedRoll  + accelCoeff * accelRoll);
-    pitchEst = wrapAngle(gyroCoeff * predictedPitch + accelCoeff * accelPitch);
+    const auto gyroWeight  = attitudeTau / (attitudeTau + dtIMU);
+    const auto accelWeight = 1 - gyroWeight; // dtIMU / (attitudeTau + dtIMU);
+    rollEst  = wrapAngle(gyroWeight * predictedRoll + accelWeight * accelRoll);
+    pitchEst = wrapAngle(gyroWeight * predictedPitch + accelWeight * accelPitch);
 
     lastGyro = gyro;
 }

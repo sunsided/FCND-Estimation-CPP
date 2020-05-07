@@ -130,7 +130,18 @@ the starter code.
 
 ### Attitude Estimation by Complementary Filter
 
-In order to perform attitude estimation, the starter code used a simple integration scheme like so: 
+In theory, gyro data could be integrated constantly in order to obtain an attitude
+estimate. Due to the noise characteristics of a gyro sensor however and the fact
+that it gets integrated with every update, this approach performing extremely badly and
+results in noticeable drift.
+
+To mitigate, a complementary filter-type solution can be used that combines
+attitude from integrated gyro roll rates with direct attitude estimation from the
+accelerometer, thus combining fast updates from the gyro with long-term stability
+of the accelerometer. 
+
+In order to first perform attitude estimation from the gyro, the starter code used a
+simple integration scheme like so: 
 
 ```c++
 auto predictedPitch = pitchEst + dtIMU * gyro.y;
@@ -138,17 +149,21 @@ auto predictedRoll  = rollEst  + dtIMU * gyro.x;
 auto predictedYaw   = yawEst   + dtIMU * gyro.z;
 ```
 
-Due to the noise characteristics of the gyro sensor and the fact that it gets integrated with every
-update, this is performing comparatively badly and results in noticeable drift.
+The main problem with the this approach is that it is only a
+[small-angle approximation](https://en.wikipedia.org/wiki/Small-angle_approximation),
+and - concretely - valid only with very small roll rates. Specifically is it based 
+on the idea that a sinusoidal function is approximately linear in any small
+environment around zero and follow directly from a Taylor series
+approximation of the `sin` and `cos` functions (at zero).
 
-To mitigate, a complementary filter-type solution was implemented that combines attitude from
-integrated gyro roll rates with direct attitude estimation from the accelerometer, thus combining
-fast updates from the gyro with long-term correctness of the accelerometer. For this, a quaternion-based
-representation of the roll rate and predicted new orientation was obtained:
+![](images/small-angle-approximation.png)
+
+To fix this, a quaternion-based integration was implemented to apply body frame
+roll rates to inertial frame euler angles:
 
 ```c++
 const auto orientation = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, yawEst);
-const auto rollRate = Quaternion<float>::FromAxisAngle(gyro * dtIMU);
+const auto rollRate    = Quaternion<float>::FromAxisAngle(gyro * dtIMU);
 const auto predictedOrientation = rollRate * orientation;
 
 const auto predictedPitch = predictedOrientation.Pitch();
@@ -158,26 +173,30 @@ const auto predictedYaw   = wrapAngle(predictedOrientation.Yaw()); // -π .. +π
 
 Here, `wrapAngle(radians)` is a helper function that ensures a provided angle is in -π .. +π range.
 
-Lastly, a complementary filter fuses the gyro-predicted roll and pitch angle with the accelerometer-predicted
-roll and pitch angles in the usual fashion:
+Lastly, the complementary filter fuses the gyro-predicted roll and pitch angle
+with the accelerometer-predicted roll and pitch angles in the usual fashion:
 
 ```c++
-const auto gyroCoeff  = attitudeTau / (attitudeTau + dtIMU);
-const auto accelCoeff = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
+const auto gyroWeight  = attitudeTau / (attitudeTau + dtIMU);
+const auto accelWeight = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
 
-rollEst  = wrapAngle(gyroCoeff * predictedRoll  + accelCoeff * accelRoll);
-pitchEst = wrapAngle(gyroCoeff * predictedPitch + accelCoeff * accelPitch);
+rollEst  = wrapAngle(gyroWeight * predictedRoll  + accelWeight * accelRoll);
+pitchEst = wrapAngle(gyroWeight * predictedPitch + accelWeight * accelPitch);
 ```
 
 Here's the output after implementing the above:
 
 ![](images/scenario-2.png)
 
-Note that the yaw,m pitch and roll errors max out at about 0.02 rad, or about 1.15°. The yaw
-error increases at the and of the cycle since the drone is performing a rotation around its up
-axis while the yaw angle is not yet fused with another sensor (note that in the above, yaw is
-only integrated from roll rates). To fix this, extra information such as the magnetometer's
-absolute orientation information will be required.
+Note that the pitch and roll errors temporarily reach (only) about ±0.02 rad,
+or about ±1.15°, and quickly go back to zero.
+
+The yaw error permanently increases at the and of the cycle since the drone
+is performing a rotation around its up axis. However, the yaw angle is not yet
+fused with another sensor (note that in the above, yaw is only integrated from
+roll rates, which leads to the aforementioned drift). To fix this, extra
+information such as the magnetometer's absolute orientation information
+will be required.
 
 For comparison, here's an excerpt from the starter code:
 
