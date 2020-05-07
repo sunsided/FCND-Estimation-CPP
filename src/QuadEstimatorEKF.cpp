@@ -184,6 +184,19 @@ VectorXf QuadEstimatorEKF::PredictState(VectorXf curState, float dt, V3F accel, 
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+    // Integrate XYZ velocities onto the XYZ positions.
+    predictedState(0) += predictedState(3) * dt;
+    predictedState(1) += predictedState(4) * dt;
+    predictedState(2) += predictedState(5) * dt;
+
+    // Integrate the XYZ accelerations onto the XYZ velocities;
+    // note that the body frame acceleration needs to be converted to inertial
+    // frame and adjusted for gravity.
+    const V3F gravity {0.0, 0.0, CONST_GRAVITY};
+    const auto accelInertialFrame = attitude.Rotate_BtoI(accel) - gravity;
+    predictedState(3) += accelInertialFrame.x * dt;
+    predictedState(4) += accelInertialFrame.y * dt;
+    predictedState(5) += accelInertialFrame.z * dt;
 
     /////////////////////////////// END STUDENT CODE ////////////////////////////
 

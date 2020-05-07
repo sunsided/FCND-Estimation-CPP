@@ -8,4 +8,4 @@
 #define F_PI ((float)(M_PI))
 #endif
 
-const double CONST_GRAVITY = 9.81; // gravity in [m/s^2]
+constexpr double CONST_GRAVITY = 9.81; // gravity in [m/s^2]
