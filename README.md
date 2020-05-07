@@ -257,40 +257,34 @@ Here's about how it looks:
 Note that while this is a picture from the starter code, it _somewhat_ resembles
 the actual output.
 
-### Step 4: Magnetometer Update
+### Magnetometer Update
 
-Up until now we've only used the accelerometer and gyro for our state estimation.  In this step, you
-will be adding the information from the magnetometer to improve your filter's performance in estimating
-the vehicle's heading.
+Previously, only gyroscope and accelerometer were used for state estimation. In this step,
+the magnetometer is added in order to improve the drone's heading estimation; 
+for this, scenario `10_MagUpdate` of the simulator is used.
 
-1. Run scenario `10_MagUpdate`.  This scenario uses a realistic IMU, but the magnetometer update hasn't
-   been implemented yet. As a result, you will notice that the estimate yaw is drifting away from the real
-   value (and the estimated standard deviation is also increasing).  Note that in this case the plot is
-   showing you the estimated yaw error (`quad.est.e.yaw`), which is drifting away from zero as the
-   simulation runs.  You should also see the estimated standard deviation of that state (white boundary)
-   is also increasing.
-2. Tune the parameter `QYawStd` (`QuadEstimatorEKF.txt`) for the QuadEstimatorEKF so that it approximately
-   captures the magnitude of the drift, as demonstrated in the figure below.
-3. Implement magnetometer update in the function `UpdateFromMag()`.  Once completed, you should see a
-   resulting plot similar to this one:
+The `UpdateFromMag()` method obtains a measurement of the magnetometer, as well as the
+yaw prediction from the current EKF state, determines the observation function's Jacobian
+(with respect to the yaw measurement) and updates the state:
 
-The drift magnitude:
+```c++
+const auto measuredYaw   = ekfState(6);
+measurementPrediction(0) = smallerAngle(measuredYaw, yawFromMagnetometer);
+hPrime(0,6)              = 1.0;
+```
 
-![mag drift](images/mag-drift.png)
+Here, `smallerAngle(predicted, measurement)` ensures that angles ±180° are inverted
+(for example, +359° is equal to -1°).
 
-A good solution looks like this:
+Lastly, the yaw error standard deviation (`QYawStd` in [`config/QuadEstimatorEKF.txt`](config/QuadEstimatorEKF.txt))
+was obtained empirically by ensuring that about 68% of the sensor noise was captured.
+The following value was obtained this way:
+
+- **`QPosXYStd`:** `.1175`
+
+The result looked somewhat like this (just better):
 
 ![mag good](images/mag-good-solution.png)
-
-***Success criteria:*** *Your goal is to both have an estimated standard deviation that accurately
-captures the error and maintain an error of less than 0.1rad in heading for at least 10 seconds of the
-simulation.*
-
-**Hint: after implementing the magnetometer update, you may have to once again tune the parameter
-`QYawStd` to better balance between the long term drift and short-time noise from the magnetometer.**
-
-**Hint: see section 7.3.2 of [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj)
-for a refresher on the magnetometer update.**
 
 
 ### Step 5: Closed Loop + GPS Update
