@@ -1,131 +1,50 @@
-# Estimation Project
+# Estimation Project: Tasks
 
-Welcome to the estimation project.  In this project, you will be developing the estimation portion of the
-controller used in the CPP simulator.  By the end of the project, your simulated quad will be flying with
-your estimator and your custom controller (from the previous project)!
+This document contains the original task descriptions and the rubric points
+for the Nanodegree project.
 
-This README is broken down into the following sections:
+## The Tasks
 
- - [Setup](#setup) - the environment and code setup required to get started and a brief overview of the
-   project structure
- - [The Tasks](#the-tasks) - the tasks you will need to complete for the project
- - [Tips and Tricks](#tips-and-tricks) - some additional tips and tricks you may find useful along the way
- - [Submission](#submission) - overview of the requirements for your project submission
+Once again, you will be building up your estimator in pieces.  At each step, there will be a set of success
+criteria that will be displayed both in the plots and in the terminal output to help you along the way.
 
+Project outline:
 
-## Setup
+ - [Step 1: Sensor Noise](#step-1-sensor-noise)
+ - [Step 2: Attitude Estimation](#step-2-attitude-estimation)
+ - [Step 3: Prediction Step](#step-3-prediction-step)
+ - [Step 4: Magnetometer Update](#step-4-magnetometer-update)
+ - [Step 5: Closed Loop + GPS Update](#step-5-closed-loop--gps-update)
+ - [Step 6: Adding Your Controller](#step-6-adding-your-controller)
 
-This project will continue to use the C++ development environment you set up in the Controls C++ project.
+### Step 1: Sensor Noise
 
- 1. Clone the repository
- ```
- git clone https://github.com/udacity/FCND-Estimation-CPP.git
- ```
+For the controls project, the simulator was working with a perfect set of sensors, meaning none of the
+sensors had any noise.  The first step to adding additional realism to the problem, and developing an
+estimator, is adding noise to the quad's sensors.  For the first step, you will collect some simulated
+noisy sensor data and estimate the standard deviation of the quad's sensor.
 
- 2. Import the code into your IDE like done in the
-    [Controls C++ project](https://github.com/udacity/FCND-Controls-CPP#development-environment-setup)
- 
- 3. You should now be able to compile and run the estimation simulator just as you did in the controls project
+1. Run the simulator in the same way as you have before
+2. Choose scenario `06_NoisySensors`.  In this simulation, the interest is to record some sensor data on
+   a static quad, so you will not see the quad move.  You will see two plots at the bottom, one for GPS X
+   position and one for The accelerometer's x measurement.  The dashed lines are a visualization of a single
+   standard deviation from 0 for each signal. The standard deviations are initially set to arbitrary values
+   (after processing the data in the next step, you will be adjusting these values).  If they were set
+   correctly, we should see ~68% of the measurement points fall into the +/- 1 sigma bound.  When you run
+   this scenario, the graphs you see will be recorded to the following csv files with headers:
+   `config/log/Graph1.txt` (GPS X data) and `config/log/Graph2.txt` (Accelerometer X data).
+3. Process the logged files to figure out the standard deviation of the the GPS X signal and the IMU
+   Accelerometer X signal.
+4. Plug in your result into the top of `config/6_Sensornoise.txt`.  Specially, set the values for
+   `MeasuredStdDev_GPSPosXY` and `MeasuredStdDev_AccelXY` to be the values you have calculated.
+5. Run the simulator. If your values are correct, the dashed lines in the simulation will eventually turn
+   green, indicating you’re capturing approx 68% of the respective measurements (which is what we expect within +/- 1 sigma bound for a Gaussian noise model)
 
+***Success criteria:*** *Your standard deviations should accurately capture the value of approximately
+68% of the respective measurements.*
 
-### Project Structure
-
-For this project, you will be interacting with a few more files than before.
-
- - The EKF is already partially implemented for you in `QuadEstimatorEKF.cpp`
- - Parameters for tuning the EKF are in the parameter file `QuadEstimatorEKF.txt`
- - When you turn on various sensors (the scenarios configure them, e.g. 
-   `Quad.Sensors += SimIMU, SimMag, SimGPS`), additional sensor plots will become available to see what
-   the simulated sensors measure.
- - The EKF implementation exposes both the estimated state and a number of additional variables.
-   In particular:
-   - `Quad.Est.E.X` is the error in estimated X position from true value.  More generally, the variables in `<vehicle>.Est.E.*` are relative errors, though some are combined errors (e.g. MaxEuler).
-   - `Quad.Est.S.X` is the estimated standard deviation of the X state (that is, the square root of the appropriate diagonal variable in the covariance matrix). More generally, the variables in `<vehicle>.Est.S.*` are standard deviations calculated from the estimator state covariance matrix.
-   - `Quad.Est.D` contains miscellaneous additional debug variables useful in diagnosing the filter. You may or might not find these useful but they were helpful to us in verifying the filter and may give you some ideas if you hit a block.
-
-
-#### `config` Directory
-
-In the `config` directory, in addition to finding the configuration files for your controller and your
-estimator, you will also see configuration files for each of the simulations.  For this project, you
-will be working with simulations 06 through 11 and you may find it insightful to take a look at the
-configuration for the simulation.
-
-As an example, if we look through the configuration file for scenario 07, we see the following parameters
-controlling the sensor:
-
-```
-# Sensors
-Quad.Sensors = SimIMU
-# use a perfect IMU
-SimIMU.AccelStd = 0,0,0
-SimIMU.GyroStd = 0,0,0
-```
-
-This configuration tells us that the simulator is only using an IMU and the sensor data will have no noise.
-You will notice that for each simulator these parameters will change slightly as additional sensors are
-being used and the noise behavior of the sensors change.
-
-
-## The Steps
-
-For a description of the original project tasks, see [TASKS.md](TASKS.md).
-
-
-### Evaluating Sensor Noise
-
-For the [controls project](https://github.com/sunsided/FCND-Controls-CPP), the simulator was working
-with a set of entirely noise-free sensors. In order to add realism to the problem, noise is now added
-back in. To do so, some noisy sensor data is collected in simulator scenario `06_NoisySensors`
-and then evaluated.
-
-In this scenario, a drone is kept motionless while sensor data is collected.
-When run, two CSV files are created:
-
-- [`config/log/Graph1.txt`](config/log/Graph1.txt) contains GPS X position measurements, and
-- [`config/log/Graph2.txt`](config/log/Graph2.txt) contains accelerometer data for the X direction.
-
-The Python script [`scripts/determine-sensor-noise.py`](scripts/determine-sensor-noise.py) was written
-to evaluate the data. When executed like so,
-
-```bash
-scripts/determine-sensor-noise.py config/log/Graph1.txt
-```
-
-it gives something along the lines of
-
-```
-Found field names:
-- Quad.GPS.X
-
-Statistics:
-- Series:     Quad.GPS.X
-  Count:      23
-  Min:        -1.571771
-  Max:        0.976935
-  Mean:       -0.06606665217391307
-  Std. Error: 0.1379983888851819
-  Std. Dev:   0.661817023581923
-```
-
-Note that `time` data has been removed from the output for brevity. A Conda environment is available
-in [`environment.yaml`](environment.yaml) and can be set up using
-
-```bash
-conda env create -f environment.yaml
-conda activate udacity-fcnd
-```
-
-The obtained standard deviations are
-
-- **GPS X/Y:** `0.7077498542201446`
-- **Accelerometer X/Y:** `0.4891275427009619`
-
-The [`config/06_SensorNoise.txt`](config/06_SensorNoise.txt) configuration file was updated with
-the obtained standard deviations, after which the simulator correctly detects that approximately 68% of
-all sensor data fall into the µ ± σ range. 
-See [`config/SimulatedSensors.txt`](config/SimulatedSensors.txt) for sensor parameters shipped with
-the starter code.
+NOTE: Your answer should match the settings in `SimulatedSensors.txt`, where you can also grab the simulated
+noise parameters for all the other sensors.
 
 
 ### Step 2: Attitude Estimation
@@ -219,7 +138,6 @@ Another set of bad examples is shown below for having a `QVelXYStd` too large (f
 
 ***Success criteria:*** *This step doesn't have any specific measurable criteria being checked.*
 
-
 ### Step 4: Magnetometer Update
 
 Up until now we've only used the accelerometer and gyro for our state estimation.  In this step, you
@@ -304,7 +222,6 @@ and de-tuning under those conditions first.**
 ***Success criteria:*** *Your objective is to complete the entire simulation cycle with estimated
 position error of < 1m.*
 
-
 ## Tips and Tricks
 
  - When it comes to transposing matrices, `.transposeInPlace()` is the function you want to use to
@@ -325,7 +242,3 @@ For this project, you will need to submit:
    - `config/QuadControlParams.txt`
 
  - a write up addressing all the points of the rubric
-
-## Authors
-
-Thanks to Fotokite for the initial development of the project code and simulator.
