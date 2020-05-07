@@ -87,7 +87,7 @@ In this next step you will be implementing the prediction step of your filter.
    insignificant (`QuadEstimatorEKF.attitudeTau = 100`).  The plots on this simulation show element of
    your estimated state and that of the true state.  At the moment you should see that your estimated
    state does not follow the true state.
-2. In `QuadEstimatorEKF.cpp`, implement the state prediction step in the `PredictState()` functon. If you
+2. In `QuadEstimatorEKF.cpp`, implement the state prediction step in the `PredictState()` function. If you
    do it correctly, when you run scenario `08_PredictState` you should see the estimator state track the
    actual state, with only reasonably slow drift, as shown in the figure below.
 3. Now let's introduce a realistic IMU, one with noise.  Run scenario `09_PredictionCov`. You will see
