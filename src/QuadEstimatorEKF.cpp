@@ -184,14 +184,19 @@ VectorXf QuadEstimatorEKF::PredictState(VectorXf curState, float dt, V3F accel, 
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+    // Estimation for Quadrotors paper:
+    // Transition Model, section 7.2, eq. 49
+    // TODO: use the gyro
+
     // Integrate XYZ velocities onto the XYZ positions.
     predictedState(0) += predictedState(3) * dt;
     predictedState(1) += predictedState(4) * dt;
     predictedState(2) += predictedState(5) * dt;
 
-    // Integrate the XYZ accelerations onto the XYZ velocities;
-    // note that the body frame acceleration needs to be converted to inertial
-    // frame and adjusted for gravity.
+    // Integrate the control input (the acceleration) onto the velocity state.
+    // (Note that the addition - unlike above - is not an integration of the state itself!)
+    // As mentioned in the comments above, the body frame acceleration needs to be converted
+    // to inertial frame and adjusted for gravity.
     const V3F gravity {0.0, 0.0, CONST_GRAVITY};
     const auto accelInertialFrame = attitude.Rotate_BtoI(accel) - gravity;
     predictedState(3) += accelInertialFrame.x * dt;
@@ -223,6 +228,24 @@ MatrixXf QuadEstimatorEKF::GetRbgPrime(float roll, float pitch, float yaw) {
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+    const auto sinPhi = sin(roll);
+    const auto cosPhi = cos(roll);
+
+    const auto sinTheta = sin(pitch);
+    const auto cosTheta = cos(pitch);
+
+    const auto sinPsi = sin(yaw);
+    const auto cosPsi = cos(yaw);
+
+    // Transition Model, section 7.2, eq. 52, first row
+    RbgPrime(0, 0) = -cosTheta * sinPsi;
+    RbgPrime(0, 1) = -sinPhi   * sinTheta * sinPsi - cosPhi * cosPsi;
+    RbgPrime(0, 2) = -cosPhi   * sinTheta * sinPsi + sinPhi * cosPsi;
+
+    // Transition Model, section 7.2, eq. 52, second row
+    RbgPrime(1, 0) =  cosTheta * cosPsi;
+    RbgPrime(1, 1) =  sinPhi   * sinTheta * cosPsi - cosPhi * sinPsi;
+    RbgPrime(1, 2) =  cosPhi   * sinTheta * cosPsi + sinPhi * sinPsi;
 
     /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -245,17 +268,12 @@ void QuadEstimatorEKF::Predict(float dt, V3F accel, V3F gyro) {
 
     // HINTS
     // - update the covariance matrix cov according to the EKF equation.
-    //
     // - you may find the current estimated attitude in variables rollEst, pitchEst, state(6).
-    //
     // - use the class MatrixXf for matrices. To create a 3x5 matrix A, use MatrixXf A(3,5).
-    //
     // - the transition model covariance, Q, is loaded up from a parameter file in member variable Q
-    //
     // - This is unfortunately a messy step. Try to split this up into clear, manageable steps:
     //   1) Calculate the necessary helper matrices, building up the transition jacobian
     //   2) Once all the matrices are there, write the equation to update cov.
-    //
     // - if you want to transpose a matrix in-place, use A.transposeInPlace(), not A = A.transpose()
     //
 
@@ -268,6 +286,18 @@ void QuadEstimatorEKF::Predict(float dt, V3F accel, V3F gyro) {
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
+    // Build the Jacobian g'(x,u,dt) of the transition function g(x,u,dt).
+    // Transition Model, section 7.2, eq. 51
+    gPrime(0,3) = dt;
+    gPrime(1,4) = dt;
+    gPrime(2,5) = dt;
+    gPrime(3,6) = (RbgPrime(0,0) * accel.x + RbgPrime(0,1) * accel.y + RbgPrime(0,2) * accel.z) * dt;
+    gPrime(4,6) = (RbgPrime(1,0) * accel.x + RbgPrime(1,1) * accel.y + RbgPrime(1,2) * accel.z) * dt;
+    gPrime(5,6) = (RbgPrime(2,0) * accel.x + RbgPrime(2,1) * accel.y + RbgPrime(2,2) * accel.z) * dt;
+
+    // Update the covariance matrix.
+    // EKF, section 3, algorithm 2, predict function
+    ekfCov = gPrime * ekfCov * gPrime.transpose() + Q;
 
     /////////////////////////////// END STUDENT CODE ////////////////////////////
 
