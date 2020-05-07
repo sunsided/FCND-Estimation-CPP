@@ -345,23 +345,26 @@ a pass of integrating noise - however, the results seem pretty good, so I'm not 
 
 ### Patching in the Controller
 
-Up to this point, we have been working with a controller that has been relaxed to work with an estimated
-state instead of a real state.  So now, you will see how well your controller performs and de-tune your
-controller accordingly.
+In a final desperate move, the controller from the [control project](https://github.com/sunsided/FCND-Controls-CPP)
+was added to replace the relaxed one that was used for implementing the state estimation.
 
-1. Replace `QuadController.cpp` with the controller you wrote in the last project.
-2. Replace `QuadControlParams.txt` with the control parameters you came up with in the last project.
-3. Run scenario `11_GPSUpdate`. If your controller crashes immediately do not panic. Flying from an
-   estimated state (even with ideal sensors) is very different from flying with ideal pose. You may need
-   to de-tune your controller. Decrease the position and velocity gains (we’ve seen about 30% detuning
-   being effective) to stabilize it.  Your goal is to once again complete the entire simulation cycle
-   with an estimated position error of < 1m.
+Surely enough, just using the controller parameters that were obtained using ideal data doesn't fly 
+(pun _so_ intended):
 
-**Hint: you may find it easiest to do your de-tuning as a 2 step process by reverting to ideal sensors
-and de-tuning under those conditions first.**
+![](images/here-goes-nothing.png)
 
-***Success criteria:*** *Your objective is to complete the entire simulation cycle with estimated
-position error of < 1m.*
+Here are some soothing words from the Ghost of the README past:
+
+> If your controller crashes immediately do not panic. Flying from an
+> estimated state (even with ideal sensors) is very different from flying with ideal pose. You may need
+> to de-tune your controller. Decrease the position and velocity gains (we’ve seen about 30% detuning
+> being effective) to stabilize it.  Your goal is to once again complete the entire simulation cycle
+> with an estimated position error of < 1m.
+
+And ...
+
+> **Hint:** you may find it easiest to do your de-tuning as a 2 step process by reverting to ideal
+> sensors and de-tuning under those conditions first.
 
 
 ## Tips and Tricks
@@ -370,20 +373,6 @@ position error of < 1m.*
    transpose a matrix
  - The [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj) document contains a
    helpful mathematical breakdown of the core elements on your estimator
-
-## Submission
-
-For this project, you will need to submit:
-
- - a completed estimator that meets the performance criteria for each of the steps by submitting:
-   - `QuadEstimatorEKF.cpp`
-   - `config/QuadEstimatorEKF.txt`
-
- - a re-tuned controller that, in conjunction with your tuned estimator, is capable of meeting the criteria laid out in Step 6 by submitting:
-   - `QuadController.cpp`
-   - `config/QuadControlParams.txt`
-
- - a write up addressing all the points of the rubric
 
 ## Authors
 
