@@ -1,4 +1,4 @@
-# Sensor Fusion and Pose Estimation
+# Quadrotor Sensor Fusion and Pose Estimation
 
 In this continuation from the [controls project](https://github.com/sunsided/FCND-Controls-CPP), 
 the sensor fusion and pose estimation code for a your simulated quad drone
