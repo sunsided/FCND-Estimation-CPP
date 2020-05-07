@@ -181,67 +181,81 @@ For comparison, here's an excerpt from the starter code:
 > ![attitude example](images/attitude-screenshot.png)
 
 
-### Step 3: Prediction Step
+### EKF Prediction
 
-In this next step you will be implementing the prediction step of your filter.
+The state and covariance prediction steps of the Extended Kalman Filter were
+implemented using scenario `08_PredictState` and `09_PredictionCov` of the simulator.
 
+Note that scenario `08_PredictState` uses only uses a noise-free IMU and suppresses
+the accelerometer by using an extremely high complementary filter weight for the
+gyroscope (`QuadEstimatorEKF.attitudeTau = 100`) in order to suppress
+drift from the doubly integrated accelerometer.
 
-1. Run scenario `08_PredictState`.  This scenario is configured to use a perfect IMU (only an IMU). Due to
-   the sensitivity of double-integration to attitude errors, we've made the accelerometer update very
-   insignificant (`QuadEstimatorEKF.attitudeTau = 100`).  The plots on this simulation show element of
-   your estimated state and that of the true state.  At the moment you should see that your estimated
-   state does not follow the true state.
-2. In `QuadEstimatorEKF.cpp`, implement the state prediction step in the `PredictState()` function. If you
-   do it correctly, when you run scenario `08_PredictState` you should see the estimator state track the
-   actual state, with only reasonably slow drift, as shown in the figure below.
-3. Now let's introduce a realistic IMU, one with noise.  Run scenario `09_PredictionCov`. You will see
-   a small fleet of quadcopter all using your prediction code to integrate forward. You will see two plots:
-   - The top graph shows 10 (prediction-only) position X estimates
-   - The bottom graph shows 10 (prediction-only) velocity estimates
-  You will notice however that the estimated covariance (white bounds) currently do not capture the
-  growing errors.
-4. In `QuadEstimatorEKF.cpp`, calculate the partial derivative of the body-to-global rotation matrix in
-   the function `GetRbgPrime()`.  Once you have that function implement, implement the rest of the
-   prediction step (predict the state covariance forward) in `Predict()`.
-5. Run your covariance prediction and tune the `QPosXYStd` and the `QVelXYStd` process parameters in
-  `QuadEstimatorEKF.txt` to try to capture the magnitude of the error you see.
-   Note that as error grows our simplified model will not capture the real error dynamics (for example,
-   specifically, coming from attitude errors), therefore  try to make it look reasonable only for a
-   relatively short prediction period (the scenario is set for one second).
+Not much is to say here; the `PredictState()` method was implemented to fast-forward
+the state vector:
 
-After step 2, sensor drift looks like this:
+```c++
+const auto accelInertialFrame = bodyToInertialFrame(accel) - gravity;
 
-![predict drift](images/predict-slow-drift.png)
+predictedState(0) += predictedState(3) * dt;
+predictedState(1) += predictedState(4) * dt;
+predictedState(2) += predictedState(5) * dt;
 
-After step 5, a good solution looks as follows:
+predictedState(3) += accelInertialFrame.x * dt;
+predictedState(4) += accelInertialFrame.y * dt;
+predictedState(5) += accelInertialFrame.z * dt;
+```
+
+Here, the accelerometer data was used as control input `u` since it is a somewhat
+reasonable approximation of the actual (human-provided) controls.
+
+Then, the `Predict()` method was updated to fast-forward the
+covariance matrix and produce a new state and covariance estimate:
+
+```c++
+// Build the transition function's Jacobian
+gPrime(0,3) = dt;
+gPrime(1,4) = dt;
+gPrime(2,5) = dt;
+gPrime(3,6) = (RbgPrime(0,0) * accel.x + RbgPrime(0,1) * accel.y + RbgPrime(0,2) * accel.z) * dt;
+gPrime(4,6) = (RbgPrime(1,0) * accel.x + RbgPrime(1,1) * accel.y + RbgPrime(1,2) * accel.z) * dt;
+gPrime(5,6) = (RbgPrime(2,0) * accel.x + RbgPrime(2,1) * accel.y + RbgPrime(2,2) * accel.z) * dt;
+
+// Covariance update
+ekfCov = gPrime * ekfCov * gPrime.transpose() + Q;
+```
+
+Here, `RbgPrime` is determined by the `GetRbgPrime()` helper method, which in turn constructs
+the Jacobian of the body-to-inertial frame rotation matrix (with the "g" in "Rbg" standing
+for global):
+
+```c++
+// Roll
+RbgPrime(0, 0) = -cosTheta * sinPsi;
+RbgPrime(0, 1) = -sinPhi   * sinTheta * sinPsi - cosPhi * cosPsi;
+RbgPrime(0, 2) = -cosPhi   * sinTheta * sinPsi + sinPhi * cosPsi;
+
+// Pitch
+RbgPrime(1, 0) =  cosTheta * cosPsi;
+RbgPrime(1, 1) =  sinPhi   * sinTheta * cosPsi - cosPhi * sinPsi;
+RbgPrime(1, 2) =  cosPhi   * sinTheta * cosPsi + sinPhi * sinPsi;
+```
+
+Lastly, [`config/QuadEstimatorEKF.txt`](config/QuadEstimatorEKF.txt) was updated
+to provide X/Y position and velocity standard deviations (`QPosXYStd` and `QVelXYStd`
+respectively) in order to capture the error ranges somewhat accurately over
+a small time horizon of one second. This process was done entirely empirically
+by eyeballing the error plots and resulted in the following values:
+
+- **`QPosXYStd`:** `.05`
+- **`QVelXYStd`:** `.2`
+
+Here's about how it looks: 
 
 ![good covariance](images/predict-good-cov.png)
 
-**Hint: see section 7.2 of [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj) for
-a refresher on the the transition model and the partial derivatives you may need**
-
-**Hint: When it comes to writing the function for GetRbgPrime, make sure to triple check you've set all
-the correct parts of the matrix.**
-
-**Hint: recall that the control input is the acceleration!**
-
-Looking at this result, you can see that in the first part of the plot, our covariance (the white line)
-grows very much like the data.
-
-If we look at an example with a `QPosXYStd` that is much too high (shown below), we can see that the
-covariance no longer grows in the same way as the data.
-
-![bad x covariance](images/bad-x-sigma.PNG)
-
-Another set of bad examples is shown below for having a `QVelXYStd` too large (first) and too small
-(second).  As you can see, once again, our covariances in these cases no longer model the data well.
-
-![bad vx cov large](images/bad-vx-sigma.PNG)
-
-![bad vx cov small](images/bad-vx-sigma-low.PNG)
-
-***Success criteria:*** *This step doesn't have any specific measurable criteria being checked.*
-
+Note that while this is a picture from the starter code, it _somewhat_ resembles
+the actual output.
 
 ### Step 4: Magnetometer Update
 
