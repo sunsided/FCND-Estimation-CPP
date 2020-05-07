@@ -1,6 +1,6 @@
 # Quadrotor Sensor Fusion and Pose Estimation
 
-In this continuation from the [controls project](https://github.com/sunsided/FCND-Controls-CPP), 
+In this continuation of the [controls project](https://github.com/sunsided/FCND-Controls-CPP), 
 the sensor fusion and pose estimation code for a your simulated quad drone
 will be implemented. 
 
@@ -20,7 +20,6 @@ Here are a couple of interesting points for working with the repo:
    - `Quad.Est.E.X` is the error in estimated X position from true value.  More generally, the variables in `<vehicle>.Est.E.*` are relative errors, though some are combined errors (e.g. MaxEuler).
    - `Quad.Est.S.X` is the estimated standard deviation of the X state (that is, the square root of the appropriate diagonal variable in the covariance matrix). More generally, the variables in `<vehicle>.Est.S.*` are standard deviations calculated from the estimator state covariance matrix.
    - `Quad.Est.D` contains miscellaneous additional debug variables useful in diagnosing the filter. You may or might not find these useful but they were helpful to us in verifying the filter and may give you some ideas if you hit a block.
-
 
 ### `config` Directory
 
