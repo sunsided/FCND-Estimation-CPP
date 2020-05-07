@@ -128,34 +128,63 @@ See [`config/SimulatedSensors.txt`](config/SimulatedSensors.txt) for sensor para
 the starter code.
 
 
-### Step 2: Attitude Estimation
+### Attitude Estimation by Complementary Filter
 
-Now let's look at the first step to our state estimation: including information from our IMU.  In this step,
-you will be improving the complementary filter-type attitude filter with a better rate gyro attitude
-integration scheme.
+In order to perform attitude estimation, the starter code used a simple integration scheme like so: 
 
-1. Run scenario `07_AttitudeEstimation`.  For this simulation, the only sensor used is the IMU and noise
-   levels are set to 0 (see `config/07_AttitudeEstimation.txt` for all the settings for this simulation).
-   There are two plots visible in this simulation.
-   - The top graph is showing errors in each of the estimated Euler angles.
-   - The bottom shows the true Euler angles and the estimates.
-Observe that there’s quite a bit of error in attitude estimation.
+```c++
+auto predictedPitch = pitchEst + dtIMU * gyro.y;
+auto predictedRoll  = rollEst  + dtIMU * gyro.x;
+auto predictedYaw   = yawEst   + dtIMU * gyro.z;
+```
 
-2. In `QuadEstimatorEKF.cpp`, you will see the function `UpdateFromIMU()` contains a complementary
-   filter-type attitude filter.  To reduce the errors in the estimated attitude (Euler Angles), implement
-   a better rate gyro attitude integration scheme.  You should be able to reduce the attitude errors to get
-   within 0.1 rad for each of the Euler angles, as shown in the screenshot below.
+Due to the noise characteristics of the gyro sensor and the fact that it gets integrated with every
+update, this is performing comparatively badly and results in noticeable drift.
 
-![attitude example](images/attitude-screenshot.png)
+To mitigate, a complementary filter-type solution was implemented that combines attitude from
+integrated gyro roll rates with direct attitude estimation from the accelerometer, thus combining
+fast updates from the gyro with long-term correctness of the accelerometer. For this, a quaternion-based
+representation of the roll rate and predicted new orientation was obtained:
 
-In the screenshot above the attitude estimation using linear scheme (left) and using the improved nonlinear
-scheme (right). Note that Y axis on error is much greater on left.
+```c++
+const auto orientation = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, yawEst);
+const auto rollRate = Quaternion<float>::FromAxisAngle(gyro * dtIMU);
+const auto predictedOrientation = rollRate * orientation;
 
-***Success criteria:*** *Your attitude estimator needs to get within 0.1 rad for each of the Euler angles
-for at least 3 seconds.*
+const auto predictedPitch = predictedOrientation.Pitch();
+const auto predictedRoll  = predictedOrientation.Roll();
+const auto predictedYaw   = wrapAngle(predictedOrientation.Yaw()); // -π .. +π
+```
 
-**Hint: see section 7.1.2 of [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj) for
-a refresher on a good non-linear complimentary filter for attitude using quaternions.**
+Here, `wrapAngle(radians)` is a helper function that ensures a provided angle is in -π .. +π range.
+
+Lastly, a complementary filter fuses the gyro-predicted roll and pitch angle with the accelerometer-predicted
+roll and pitch angles in the usual fashion:
+
+```c++
+const auto gyroCoeff  = attitudeTau / (attitudeTau + dtIMU);
+const auto accelCoeff = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
+
+rollEst  = wrapAngle(gyroCoeff * predictedRoll  + accelCoeff * accelRoll);
+pitchEst = wrapAngle(gyroCoeff * predictedPitch + accelCoeff * accelPitch);
+```
+
+Here's the output after implementing the above:
+
+![](images/scenario-2.png)
+
+Note that the yaw,m pitch and roll errors max out at about 0.02 rad, or about 1.15°. The yaw
+error increases at the and of the cycle since the drone is performing a rotation around its up
+axis while the yaw angle is not yet fused with another sensor (note that in the above, yaw is
+only integrated from roll rates). To fix this, extra information such as the magnetometer's
+absolute orientation information will be required.
+
+For comparison, here's an excerpt from the starter code:
+
+> In the screenshot \[below] the attitude estimation using linear scheme (left) and using the improved nonlinear
+  scheme (right) \[is shown]. Note that Y axis on error is much greater on left.
+>
+> ![attitude example](images/attitude-screenshot.png)
 
 
 ### Step 3: Prediction Step

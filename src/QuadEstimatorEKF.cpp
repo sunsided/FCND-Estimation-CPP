@@ -13,6 +13,22 @@ constexpr T square(const T& value) {
     return value*value;
 }
 
+float wrapAngle(float radians) {
+    // Ensures an angle is within -pi .. pi range.
+
+    static const auto pi = static_cast<float>(M_PI);
+    static const auto pi2 = 2.0F * static_cast<float>(M_PI);
+
+    while (radians > pi) {
+        radians -= pi2;
+    }
+    while (radians < -pi) {
+        radians += pi2;
+    }
+
+    return radians;
+}
+
 const int QuadEstimatorEKF::QUAD_EKF_NUM_STATES;
 
 QuadEstimatorEKF::QuadEstimatorEKF(string config, string name)
@@ -89,27 +105,35 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro) {
     //       (Quaternion<float> also has a IntegrateBodyRate function, though this uses quaternions, not Euler angles)
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-    // SMALL ANGLE GYRO INTEGRATION:
-    // (replace the code below)
-    // make sure you comment it out when you add your own code -- otherwise e.g. you might integrate yaw twice
 
-    float predictedPitch = pitchEst + dtIMU * gyro.y;
-    float predictedRoll = rollEst + dtIMU * gyro.x;
-    ekfState(6) = ekfState(6) + dtIMU * gyro.z;    // yaw
+    // Construct orientation quaternion from roll, pitch and yaw euler angles.
+    const auto yawEst = ekfState(6);
+    const auto orientation = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, yawEst);
 
-    // normalize yaw to -pi .. pi
-    if (ekfState(6) > F_PI) ekfState(6) -= 2.f * F_PI;
-    if (ekfState(6) < -F_PI) ekfState(6) += 2.f * F_PI;
+    // Integrate gyro roll rates. (See also: dq.IntegrateBodyRate(gyro, dtIMU))
+    const auto rollRate = Quaternion<float>::FromAxisAngle(gyro * dtIMU);
+
+    // Nonlinear Complementary Filter, section 7.1.2, eq. 43
+    const auto predictedOrientation = rollRate * orientation;
+
+    const auto predictedPitch = predictedOrientation.Pitch();
+    const auto predictedRoll = predictedOrientation.Roll();
+    const auto predictedYaw = wrapAngle(predictedOrientation.Yaw());
+
+    // Patch the new yaw back into the state vector.
+    ekfState(6) = predictedYaw;
 
     /////////////////////////////// END STUDENT CODE ////////////////////////////
 
     // CALCULATE UPDATE
-    accelRoll = atan2f(accel.y, accel.z);
+    accelRoll  = atan2f(accel.y, accel.z);
     accelPitch = atan2f(-accel.x, 9.81f);
 
     // FUSE INTEGRATION AND UPDATE
-    rollEst = attitudeTau / (attitudeTau + dtIMU) * (predictedRoll) + dtIMU / (attitudeTau + dtIMU) * accelRoll;
-    pitchEst = attitudeTau / (attitudeTau + dtIMU) * (predictedPitch) + dtIMU / (attitudeTau + dtIMU) * accelPitch;
+    const auto gyroCoeff  = attitudeTau / (attitudeTau + dtIMU);
+    const auto accelCoeff = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
+    rollEst  = wrapAngle(gyroCoeff * predictedRoll  + accelCoeff * accelRoll);
+    pitchEst = wrapAngle(gyroCoeff * predictedPitch + accelCoeff * accelPitch);
 
     lastGyro = gyro;
 }
