@@ -1,40 +1,17 @@
 # Estimation Project
 
-Welcome to the estimation project.  In this project, you will be developing the estimation portion of the
-controller used in the CPP simulator.  By the end of the project, your simulated quad will be flying with
-your estimator and your custom controller (from the previous project)!
-
-This README is broken down into the following sections:
-
- - [Setup](#setup) - the environment and code setup required to get started and a brief overview of the
-   project structure
- - [The Tasks](#the-tasks) - the tasks you will need to complete for the project
- - [Tips and Tricks](#tips-and-tricks) - some additional tips and tricks you may find useful along the way
- - [Submission](#submission) - overview of the requirements for your project submission
+In this continuation from the [controls project](https://github.com/sunsided/FCND-Controls-CPP), 
+the sensor fusion and pose estimation code for a your simulated quad drone
+will be implemented. 
 
 
-## Setup
+## Project Structure
 
-This project will continue to use the C++ development environment you set up in the Controls C++ project.
+Here are a couple of interesting points for working with the repo:
 
- 1. Clone the repository
- ```
- git clone https://github.com/udacity/FCND-Estimation-CPP.git
- ```
-
- 2. Import the code into your IDE like done in the
-    [Controls C++ project](https://github.com/udacity/FCND-Controls-CPP#development-environment-setup)
- 
- 3. You should now be able to compile and run the estimation simulator just as you did in the controls project
-
-
-### Project Structure
-
-For this project, you will be interacting with a few more files than before.
-
- - The EKF is already partially implemented for you in `QuadEstimatorEKF.cpp`
+ - An Extended Kalman Filter is implemented in `QuadEstimatorEKF.cpp`
  - Parameters for tuning the EKF are in the parameter file `QuadEstimatorEKF.txt`
- - When you turn on various sensors (the scenarios configure them, e.g. 
+ - When various sensors are turned on (the scenarios configure them, e.g. 
    `Quad.Sensors += SimIMU, SimMag, SimGPS`), additional sensor plots will become available to see what
    the simulated sensors measure.
  - The EKF implementation exposes both the estimated state and a number of additional variables.
@@ -44,7 +21,7 @@ For this project, you will be interacting with a few more files than before.
    - `Quad.Est.D` contains miscellaneous additional debug variables useful in diagnosing the filter. You may or might not find these useful but they were helpful to us in verifying the filter and may give you some ideas if you hit a block.
 
 
-#### `config` Directory
+### `config` Directory
 
 In the `config` directory, in addition to finding the configuration files for your controller and your
 estimator, you will also see configuration files for each of the simulations.  For this project, you
@@ -66,11 +43,9 @@ This configuration tells us that the simulator is only using an IMU and the sens
 You will notice that for each simulator these parameters will change slightly as additional sensors are
 being used and the noise behavior of the sensors change.
 
-
 ## The Steps
 
 For a description of the original project tasks, see [TASKS.md](TASKS.md).
-
 
 ### Evaluating Sensor Noise
 
