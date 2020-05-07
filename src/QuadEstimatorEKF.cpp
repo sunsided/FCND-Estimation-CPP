@@ -8,6 +8,11 @@
 
 using namespace SLR;
 
+template <typename T>
+constexpr T square(const T& value) {
+    return value*value;
+}
+
 const int QuadEstimatorEKF::QUAD_EKF_NUM_STATES;
 
 QuadEstimatorEKF::QuadEstimatorEKF(string config, string name)
@@ -45,22 +50,22 @@ void QuadEstimatorEKF::Init() {
 
     // GPS measurement model covariance
     R_GPS.setZero();
-    R_GPS(0, 0) = R_GPS(1, 1) = powf(paramSys->Get(_config + ".GPSPosXYStd", 0), 2);
-    R_GPS(2, 2) = powf(paramSys->Get(_config + ".GPSPosZStd", 0), 2);
-    R_GPS(3, 3) = R_GPS(4, 4) = powf(paramSys->Get(_config + ".GPSVelXYStd", 0), 2);
-    R_GPS(5, 5) = powf(paramSys->Get(_config + ".GPSVelZStd", 0), 2);
+    R_GPS(0, 0) = R_GPS(1, 1) = square(paramSys->Get(_config + ".GPSPosXYStd", 0));
+    R_GPS(2, 2) = square(paramSys->Get(_config + ".GPSPosZStd", 0));
+    R_GPS(3, 3) = R_GPS(4, 4) = square(paramSys->Get(_config + ".GPSVelXYStd", 0));
+    R_GPS(5, 5) = square(paramSys->Get(_config + ".GPSVelZStd", 0));
 
     // magnetometer measurement model covariance
     R_Mag.setZero();
-    R_Mag(0, 0) = powf(paramSys->Get(_config + ".MagYawStd", 0), 2);
+    R_Mag(0, 0) = square(paramSys->Get(_config + ".MagYawStd", 0));
 
     // load the transition model covariance
     Q.setZero();
-    Q(0, 0) = Q(1, 1) = powf(paramSys->Get(_config + ".QPosXYStd", 0), 2);
-    Q(2, 2) = powf(paramSys->Get(_config + ".QPosZStd", 0), 2);
-    Q(3, 3) = Q(4, 4) = powf(paramSys->Get(_config + ".QVelXYStd", 0), 2);
-    Q(5, 5) = powf(paramSys->Get(_config + ".QVelZStd", 0), 2);
-    Q(6, 6) = powf(paramSys->Get(_config + ".QYawStd", 0), 2);
+    Q(0, 0) = Q(1, 1) = square(paramSys->Get(_config + ".QPosXYStd", 0));
+    Q(2, 2) = square(paramSys->Get(_config + ".QPosZStd", 0));
+    Q(3, 3) = Q(4, 4) = square(paramSys->Get(_config + ".QVelXYStd", 0));
+    Q(5, 5) = square(paramSys->Get(_config + ".QVelZStd", 0));
+    Q(6, 6) = square(paramSys->Get(_config + ".QYawStd", 0));
     Q *= dtIMU;
 
     rollErr = pitchErr = maxEuler = 0;
