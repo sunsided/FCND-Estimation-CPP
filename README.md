@@ -307,31 +307,39 @@ zero-valued standard deviations like so ...
 
 ![This is my life now](images/this-is-my-life-now.png)
 
-1. Run scenario `11_GPSUpdate`.  At the moment this scenario is using both an ideal estimator and and
-   ideal IMU.  Even with these ideal elements, watch the position and velocity errors (bottom right).
-   As you see they are drifting away, since GPS update is not yet implemented.
-2. Let's change to using your estimator by setting `Quad.UseIdealEstimator` to 0 in
-   `config/11_GPSUpdate.txt`.  Rerun the scenario to get an idea of how well your estimator work with an
-   ideal IMU.
-3. Now repeat with realistic IMU by commenting out these lines in `config/11_GPSUpdate.txt`:
-    ```
-    #SimIMU.AccelStd = 0,0,0
-    #SimIMU.GyroStd = 0,0,0
-    ```
-4. Tune the process noise model in `QuadEstimatorEKF.txt` to try to approximately capture the error you
-   see with the estimated uncertainty (standard deviation) of the filter.
-5. Implement the EKF GPS Update in the function `UpdateFromGPS()`.
-6. Now once again re-run the simulation.  Your objective is to complete the entire simulation cycle with
-   estimated position error of < 1m (you’ll see a green box over the bottom graph if you succeed).
-   You may want to try experimenting with the GPS update parameters to try and get better performance.
+The GPS update (`UpdateFromGPS()`) can be implemented in a rather trivial fashion -
+the key here is that GPS measures both position and velocity directly, and we already
+have estimates for everything in the EKF's state. Likewise, the partial derivatives
+are just a diagonal matrix (the last column being all zeroes due to the yaw not playing
+a role in position updates):
 
-***Success criteria:*** *Your objective is to complete the entire simulation cycle with estimated
-position error of < 1m.*
+```c++
+for (int i = 0; i < 6; ++i) {
+    zFromX(i) = ekfState(i);
+}
 
-**Hint: see section 7.3.1 of [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj)
-for a refresher on the GPS update.**
+hPrime.setIdentity();
+```
 
-At this point, congratulations on having a working estimator!
+After this, it was back to parameter tuning in [`config/QuadEstimatorEKF.txt`](config/QuadEstimatorEKF.txt).
+Here's the current set of values:
+
+- **`QPosXYStd`:** `.1`
+- **`QVelXYStd`:** `.15`
+- **`QPosZStd`:** `.03`
+- **`QVelZStd`:** `.025`
+- **`QYawStd`:** `.1175`
+- **`GPSPosXYStd`:** `.7`
+- **`GPSVelXYStd`:** `1`
+- **`GPSPosZStd`:** `2`
+- **`GPSVelZStd`:** `.3`
+- **`MagYawStd`:** `.1`
+- **`attitudeTau`:** `75`
+
+Note that the actual standard deviations for the GPS are known from
+[`config/SimulatedSensors.txt`](config/SimulatedSensors.txt). It is also somewhat fishy that the
+position standard deviations are so close to the velocity ones, even though they're undergoing
+a pass of integrating noise - however, the results seem pretty good, so I'm not going to argue.
 
 ### Step 6: Adding Your Controller
 
