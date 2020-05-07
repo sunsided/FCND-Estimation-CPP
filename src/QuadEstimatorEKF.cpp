@@ -8,6 +8,27 @@
 
 using namespace SLR;
 
+template <typename T>
+constexpr T square(const T& value) {
+    return value*value;
+}
+
+float wrapAngle(float radians) {
+    // Ensures an angle is within -pi .. pi range.
+
+    static const auto pi = static_cast<float>(M_PI);
+    static const auto pi2 = 2.0F * static_cast<float>(M_PI);
+
+    while (radians > pi) {
+        radians -= pi2;
+    }
+    while (radians < -pi) {
+        radians += pi2;
+    }
+
+    return radians;
+}
+
 const int QuadEstimatorEKF::QUAD_EKF_NUM_STATES;
 
 QuadEstimatorEKF::QuadEstimatorEKF(string config, string name)
@@ -45,22 +66,22 @@ void QuadEstimatorEKF::Init() {
 
     // GPS measurement model covariance
     R_GPS.setZero();
-    R_GPS(0, 0) = R_GPS(1, 1) = powf(paramSys->Get(_config + ".GPSPosXYStd", 0), 2);
-    R_GPS(2, 2) = powf(paramSys->Get(_config + ".GPSPosZStd", 0), 2);
-    R_GPS(3, 3) = R_GPS(4, 4) = powf(paramSys->Get(_config + ".GPSVelXYStd", 0), 2);
-    R_GPS(5, 5) = powf(paramSys->Get(_config + ".GPSVelZStd", 0), 2);
+    R_GPS(0, 0) = R_GPS(1, 1) = square(paramSys->Get(_config + ".GPSPosXYStd", 0));
+    R_GPS(2, 2) = square(paramSys->Get(_config + ".GPSPosZStd", 0));
+    R_GPS(3, 3) = R_GPS(4, 4) = square(paramSys->Get(_config + ".GPSVelXYStd", 0));
+    R_GPS(5, 5) = square(paramSys->Get(_config + ".GPSVelZStd", 0));
 
     // magnetometer measurement model covariance
     R_Mag.setZero();
-    R_Mag(0, 0) = powf(paramSys->Get(_config + ".MagYawStd", 0), 2);
+    R_Mag(0, 0) = square(paramSys->Get(_config + ".MagYawStd", 0));
 
     // load the transition model covariance
     Q.setZero();
-    Q(0, 0) = Q(1, 1) = powf(paramSys->Get(_config + ".QPosXYStd", 0), 2);
-    Q(2, 2) = powf(paramSys->Get(_config + ".QPosZStd", 0), 2);
-    Q(3, 3) = Q(4, 4) = powf(paramSys->Get(_config + ".QVelXYStd", 0), 2);
-    Q(5, 5) = powf(paramSys->Get(_config + ".QVelZStd", 0), 2);
-    Q(6, 6) = powf(paramSys->Get(_config + ".QYawStd", 0), 2);
+    Q(0, 0) = Q(1, 1) = square(paramSys->Get(_config + ".QPosXYStd", 0));
+    Q(2, 2) = square(paramSys->Get(_config + ".QPosZStd", 0));
+    Q(3, 3) = Q(4, 4) = square(paramSys->Get(_config + ".QVelXYStd", 0));
+    Q(5, 5) = square(paramSys->Get(_config + ".QVelZStd", 0));
+    Q(6, 6) = square(paramSys->Get(_config + ".QYawStd", 0));
     Q *= dtIMU;
 
     rollErr = pitchErr = maxEuler = 0;
@@ -84,27 +105,35 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro) {
     //       (Quaternion<float> also has a IntegrateBodyRate function, though this uses quaternions, not Euler angles)
 
     ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-    // SMALL ANGLE GYRO INTEGRATION:
-    // (replace the code below)
-    // make sure you comment it out when you add your own code -- otherwise e.g. you might integrate yaw twice
 
-    float predictedPitch = pitchEst + dtIMU * gyro.y;
-    float predictedRoll = rollEst + dtIMU * gyro.x;
-    ekfState(6) = ekfState(6) + dtIMU * gyro.z;    // yaw
+    // Construct orientation quaternion from roll, pitch and yaw euler angles.
+    const auto yawEst = ekfState(6);
+    const auto orientation = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, yawEst);
 
-    // normalize yaw to -pi .. pi
-    if (ekfState(6) > F_PI) ekfState(6) -= 2.f * F_PI;
-    if (ekfState(6) < -F_PI) ekfState(6) += 2.f * F_PI;
+    // Integrate gyro roll rates. (See also: dq.IntegrateBodyRate(gyro, dtIMU))
+    const auto rollRate = Quaternion<float>::FromAxisAngle(gyro * dtIMU);
+
+    // Nonlinear Complementary Filter, section 7.1.2, eq. 43
+    const auto predictedOrientation = rollRate * orientation;
+
+    const auto predictedPitch = predictedOrientation.Pitch();
+    const auto predictedRoll = predictedOrientation.Roll();
+    const auto predictedYaw = wrapAngle(predictedOrientation.Yaw());
+
+    // Patch the new yaw back into the state vector.
+    ekfState(6) = predictedYaw;
 
     /////////////////////////////// END STUDENT CODE ////////////////////////////
 
     // CALCULATE UPDATE
-    accelRoll = atan2f(accel.y, accel.z);
+    accelRoll  = atan2f(accel.y, accel.z);
     accelPitch = atan2f(-accel.x, 9.81f);
 
     // FUSE INTEGRATION AND UPDATE
-    rollEst = attitudeTau / (attitudeTau + dtIMU) * (predictedRoll) + dtIMU / (attitudeTau + dtIMU) * accelRoll;
-    pitchEst = attitudeTau / (attitudeTau + dtIMU) * (predictedPitch) + dtIMU / (attitudeTau + dtIMU) * accelPitch;
+    const auto gyroCoeff  = attitudeTau / (attitudeTau + dtIMU);
+    const auto accelCoeff = 1 - gyroCoeff; // dtIMU / (attitudeTau + dtIMU);
+    rollEst  = wrapAngle(gyroCoeff * predictedRoll  + accelCoeff * accelRoll);
+    pitchEst = wrapAngle(gyroCoeff * predictedPitch + accelCoeff * accelPitch);
 
     lastGyro = gyro;
 }
