@@ -395,13 +395,6 @@ position D gain (`kpVelXY`) resulted in very unstable hover.
 
 ![](images/controlled.png)
 
-## Tips and Tricks
-
- - When it comes to transposing matrices, `.transposeInPlace()` is the function you want to use to
-   transpose a matrix
- - The [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj) document contains a
-   helpful mathematical breakdown of the core elements on your estimator
-
 ## Authors
 
 Thanks to Fotokite for the initial development of the project code and simulator.
