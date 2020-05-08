@@ -335,6 +335,7 @@ Here's the current set of values:
 - **`GPSVelZStd`:** `.3`
 - **`MagYawStd`:** `.1`
 - **`attitudeTau`:** `75`
+- **`InitStdDevs`:** Set to these values as well, since they're known.
 
 Note that the actual standard deviations for the GPS are known from
 [`config/SimulatedSensors.txt`](config/SimulatedSensors.txt). It is also somewhat fishy that the
@@ -366,6 +367,23 @@ And ...
 > **Hint:** you may find it easiest to do your de-tuning as a 2 step process by reverting to ideal
 > sensors and de-tuning under those conditions first.
 
+What came as a shock to me was that detuning the gains by 30% wasn't even remotely helpful, and
+reducing gains by about an order of magnitude was required. Here is the set of gains as they are
+used now:
+
+| Gain          | Old value    | New value   |
+| ------------- | -------------| ----------- |
+| **`kpPosXY`** | `35`         | `2.5`       |
+| **`kpPosZ`**  | `25`         | `3.5`       |
+| **`KiPosZ`**  | `42`         | `4.2`       |
+| **`kpVelXY`** | `12`         | `7`         |
+| **`kpVelZ`**  | `15`         | `7.5`       |
+| **`kpBank`**  | `13`         | `12`        |
+| **`kpYaw`**   | `3`          | `5`         |
+| **`kpPQR`**   | `85, 85, 10` | `75, 75, 8` |
+
+With a too high position P gain (`kpPosXY`), overshooting was noticeable, whereas a too high
+position D gain (`kpVelXY`) resulted in very unstable hover. 
 
 ## Tips and Tricks
 
