@@ -247,8 +247,10 @@ respectively) in order to capture the error ranges somewhat accurately over
 a small time horizon of one second. This process was done entirely empirically
 by eyeballing the error plots and resulted in the following values:
 
-- **`QPosXYStd`:** `.05`
-- **`QVelXYStd`:** `.2`
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QPosXYStd`**   | `.05`         |
+| **`QVelXYStd`**   | `.2`          |
 
 Here's about how it looks: 
 
@@ -280,7 +282,9 @@ Lastly, the yaw error standard deviation (`QYawStd` in [`config/QuadEstimatorEKF
 was obtained empirically by ensuring that about 68% of the sensor noise was captured.
 The following value was obtained this way:
 
-- **`QPosXYStd`:** `.1175`
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QYawStd`**     | `.1175`       |
 
 The result looked somewhat like this (just better):
 
@@ -324,18 +328,20 @@ hPrime.setIdentity();
 After this, it was back to parameter tuning in [`config/QuadEstimatorEKF.txt`](config/QuadEstimatorEKF.txt).
 Here's the current set of values:
 
-- **`QPosXYStd`:** `.1`
-- **`QVelXYStd`:** `.15`
-- **`QPosZStd`:** `.03`
-- **`QVelZStd`:** `.025`
-- **`QYawStd`:** `.1175`
-- **`GPSPosXYStd`:** `.7`
-- **`GPSVelXYStd`:** `1`
-- **`GPSPosZStd`:** `2`
-- **`GPSVelZStd`:** `.3`
-- **`MagYawStd`:** `.1`
-- **`attitudeTau`:** `75`
-- **`InitStdDevs`:** Set to these values as well, since they're known.
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QPosXYStd`**   | `.1`          |
+| **`QVelXYStd`**   | `.15`         |
+| **`QPosZStd`**    | `.03`         |
+| **`QVelZStd`**    | `.025`        |
+| **`QYawStd`**     | `.1175`       |
+| **`GPSPosXYStd`** | `.7`          |
+| **`GPSVelXYStd`** | `1`           |
+| **`GPSPosZStd`**  | `2`           |
+| **`GPSVelZStd`**  | `.3`          |
+| **`MagYawStd`**   | `1`           |
+| **`attitudeTau`** | `75`          |
+| **`InitStdDevs`** | all above     |
 
 Note that the actual standard deviations for the GPS are known from
 [`config/SimulatedSensors.txt`](config/SimulatedSensors.txt). It is also somewhat fishy that the
