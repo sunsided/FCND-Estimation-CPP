@@ -6,6 +6,8 @@ will be implemented.
 
 💡 **Fun fact:** Did you know that the word 🚁 "helicopter" isn't composed of the parts `heli` and `copter`, but of the parts `helico` and `pter`, from greek _helix_ (spiral) and _pteron_ (winged; think [Pterodactylus](https://en.wikipedia.org/wiki/Pterodactylus))? So the pronounciation really should be helico-pter, and a "quadrocopter" actually is a "quadropter". Thanks for listening, now go have fun. 😁
 
+![Estimation and Control](images/final.webp)
+
 ## Project Structure
 
 Here are a couple of interesting points for working with the repo:
