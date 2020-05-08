@@ -247,8 +247,10 @@ respectively) in order to capture the error ranges somewhat accurately over
 a small time horizon of one second. This process was done entirely empirically
 by eyeballing the error plots and resulted in the following values:
 
-- **`QPosXYStd`:** `.05`
-- **`QVelXYStd`:** `.2`
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QPosXYStd`**   | `.05`         |
+| **`QVelXYStd`**   | `.2`          |
 
 Here's about how it looks: 
 
@@ -280,7 +282,9 @@ Lastly, the yaw error standard deviation (`QYawStd` in [`config/QuadEstimatorEKF
 was obtained empirically by ensuring that about 68% of the sensor noise was captured.
 The following value was obtained this way:
 
-- **`QPosXYStd`:** `.1175`
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QYawStd`**     | `.1175`       |
 
 The result looked somewhat like this (just better):
 
@@ -324,43 +328,68 @@ hPrime.setIdentity();
 After this, it was back to parameter tuning in [`config/QuadEstimatorEKF.txt`](config/QuadEstimatorEKF.txt).
 Here's the current set of values:
 
-- **`QPosXYStd`:** `.1`
-- **`QVelXYStd`:** `.15`
-- **`QPosZStd`:** `.03`
-- **`QVelZStd`:** `.025`
-- **`QYawStd`:** `.1175`
-- **`GPSPosXYStd`:** `.7`
-- **`GPSVelXYStd`:** `1`
-- **`GPSPosZStd`:** `2`
-- **`GPSVelZStd`:** `.3`
-- **`MagYawStd`:** `.1`
-- **`attitudeTau`:** `75`
+| Parameter         | New value     |
+| ----------------- | ------------- |
+| **`QPosXYStd`**   | `.1`          |
+| **`QVelXYStd`**   | `.15`         |
+| **`QPosZStd`**    | `.03`         |
+| **`QVelZStd`**    | `.025`        |
+| **`QYawStd`**     | `.1175`       |
+| **`GPSPosXYStd`** | `.7`          |
+| **`GPSVelXYStd`** | `1`           |
+| **`GPSPosZStd`**  | `2`           |
+| **`GPSVelZStd`**  | `.3`          |
+| **`MagYawStd`**   | `1`           |
+| **`attitudeTau`** | `75`          |
+| **`InitStdDevs`** | all above     |
 
 Note that the actual standard deviations for the GPS are known from
 [`config/SimulatedSensors.txt`](config/SimulatedSensors.txt). It is also somewhat fishy that the
 position standard deviations are so close to the velocity ones, even though they're undergoing
 a pass of integrating noise - however, the results seem pretty good, so I'm not going to argue.
 
-### Step 6: Adding Your Controller
+![](images/gps-integrated.png)
 
-Up to this point, we have been working with a controller that has been relaxed to work with an estimated
-state instead of a real state.  So now, you will see how well your controller performs and de-tune your
-controller accordingly.
+### Patching in the Controller
 
-1. Replace `QuadController.cpp` with the controller you wrote in the last project.
-2. Replace `QuadControlParams.txt` with the control parameters you came up with in the last project.
-3. Run scenario `11_GPSUpdate`. If your controller crashes immediately do not panic. Flying from an
-   estimated state (even with ideal sensors) is very different from flying with ideal pose. You may need
-   to de-tune your controller. Decrease the position and velocity gains (we’ve seen about 30% detuning
-   being effective) to stabilize it.  Your goal is to once again complete the entire simulation cycle
-   with an estimated position error of < 1m.
+In a final desperate move, the controller from the [control project](https://github.com/sunsided/FCND-Controls-CPP)
+was added to replace the relaxed one that was used for implementing the state estimation.
 
-**Hint: you may find it easiest to do your de-tuning as a 2 step process by reverting to ideal sensors
-and de-tuning under those conditions first.**
+Surely enough, just using the controller parameters that were obtained using ideal data doesn't fly 
+(pun _so_ intended):
 
-***Success criteria:*** *Your objective is to complete the entire simulation cycle with estimated
-position error of < 1m.*
+![](images/here-goes-nothing.png)
 
+Here are some soothing words from the Ghost of the README past:
+
+> If your controller crashes immediately do not panic. Flying from an
+> estimated state (even with ideal sensors) is very different from flying with ideal pose. You may need
+> to de-tune your controller. Decrease the position and velocity gains (we’ve seen about 30% detuning
+> being effective) to stabilize it.  Your goal is to once again complete the entire simulation cycle
+> with an estimated position error of < 1m.
+
+And ...
+
+> **Hint:** you may find it easiest to do your de-tuning as a 2 step process by reverting to ideal
+> sensors and de-tuning under those conditions first.
+
+What came as a shock to me was that detuning the gains by 30% wasn't even remotely helpful, and
+reducing gains by about an order of magnitude was required. Here is the set of gains as they are
+used now:
+
+| Gain          | Old value    | New value   |
+| ------------- | -------------| ----------- |
+| **`kpPosXY`** | `35`         | `2.5`       |
+| **`kpPosZ`**  | `25`         | `3.5`       |
+| **`KiPosZ`**  | `42`         | `4.2`       |
+| **`kpVelXY`** | `12`         | `7`         |
+| **`kpVelZ`**  | `15`         | `7.5`       |
+| **`kpBank`**  | `13`         | `12`        |
+| **`kpYaw`**   | `3`          | `5`         |
+| **`kpPQR`**   | `85, 85, 10` | `75, 75, 8` |
+
+With a too high position P gain (`kpPosXY`), overshooting was noticeable, whereas a too high
+position D gain (`kpVelXY`) resulted in very unstable hover. 
 
 ## Tips and Tricks
 
@@ -368,20 +397,6 @@ position error of < 1m.*
    transpose a matrix
  - The [Estimation for Quadrotors](https://www.overleaf.com/read/vymfngphcccj) document contains a
    helpful mathematical breakdown of the core elements on your estimator
-
-## Submission
-
-For this project, you will need to submit:
-
- - a completed estimator that meets the performance criteria for each of the steps by submitting:
-   - `QuadEstimatorEKF.cpp`
-   - `config/QuadEstimatorEKF.txt`
-
- - a re-tuned controller that, in conjunction with your tuned estimator, is capable of meeting the criteria laid out in Step 6 by submitting:
-   - `QuadController.cpp`
-   - `config/QuadControlParams.txt`
-
- - a write up addressing all the points of the rubric
 
 ## Authors
 
