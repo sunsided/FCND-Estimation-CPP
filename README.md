@@ -393,6 +393,8 @@ used now:
 With a too high position P gain (`kpPosXY`), overshooting was noticeable, whereas a too high
 position D gain (`kpVelXY`) resulted in very unstable hover. 
 
+![](images/controlled.png)
+
 ## Tips and Tricks
 
  - When it comes to transposing matrices, `.transposeInPlace()` is the function you want to use to
